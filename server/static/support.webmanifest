@@ -1,0 +1,19 @@
+{
+  "id": "/support.html",
+  "name": "Pulse Support",
+  "short_name": "Pulse Support",
+  "description": "Request IT support and view your assigned devices.",
+  "start_url": "/support.html",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0b101a",
+  "theme_color": "#0b101a",
+  "icons": [
+    {
+      "src": "/support-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

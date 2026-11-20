@@ -1,0 +1,278 @@
+openapi: 3.1.0
+info:
+  title: PulseRMM API
+  version: 1.0.0
+  description: Fleet monitoring, enrollment, telemetry, audit, and remote operations API. Remote commands run with the agent account's OS permissions.
+servers:
+  - url: /
+security:
+  - bearerAuth: []
+paths:
+  /api:
+    get:
+      security: []
+      summary: API discovery index
+      responses:
+        '200': { description: Endpoint index }
+  /api/info:
+    get:
+      security: []
+      summary: Public RustDesk server configuration
+      responses:
+        '200': { description: RustDesk connection details }
+  /api/login:
+    post:
+      security: []
+      summary: Create an administrator session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, password]
+              properties:
+                username: { type: string }
+                password: { type: string, format: password }
+      responses:
+        '200': { description: JWT and HttpOnly cookie }
+        '401': { description: Invalid credentials }
+  /api/logout:
+    post:
+      security: []
+      summary: Clear the session cookie
+      responses:
+        '204': { description: Session cleared }
+  /api/enrollment-token:
+    post:
+      summary: Issue a one-time agent enrollment token
+      description: Expires after 24 hours. First device to connect claims the token. Treat the generated install command as a credential.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [os, arch]
+              properties:
+                os: { type: string, enum: [linux, windows, darwin] }
+                arch: { type: string, enum: [amd64, arm64] }
+      responses:
+        '200': { description: One-time token }
+        '400': { description: Unsupported target }
+        '401': { description: Authentication required }
+    delete:
+      summary: Revoke an unclaimed enrollment token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token]
+              properties: { token: { type: string, format: password } }
+      responses:
+        '204': { description: Token revoked }
+        '404': { description: Unknown or already claimed token }
+  /api/devices:
+    get:
+      summary: List devices and current telemetry
+      responses:
+        '200': { description: Device array }
+  /api/devices/{device_id}:
+    parameters:
+      - { in: path, name: device_id, required: true, schema: { type: string } }
+      - { in: query, name: range, schema: { type: string, enum: [1h, 3h, 24h, 1w, 1m] } }
+    get:
+      summary: Read device, history, jobs, and maintenance
+      responses:
+        '200': { description: Device detail }
+        '404': { description: Device not found }
+  /api/devices/{device_id}/logs:
+    get:
+      parameters:
+        - { in: path, name: device_id, required: true, schema: { type: string } }
+        - { in: query, name: hours, schema: { type: integer, minimum: 1, maximum: 744 } }
+        - { in: query, name: limit, schema: { type: integer, minimum: 1, maximum: 500 } }
+      summary: Read device logs
+      responses:
+        '200': { description: Log entries }
+  /api/devices/{device_id}/analyze:
+    post:
+      parameters:
+        - { in: path, name: device_id, required: true, schema: { type: string } }
+      summary: Request explicit AI triage
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties: { range: { type: string, enum: [1h, 3h, 24h, 1w, 1m] } }
+      responses:
+        '200': { description: Advisory analysis result }
+        '409': { description: OpenAI key missing }
+  /api/admin/api-keys:
+    get:
+      summary: List API key metadata; secret values are never returned
+      description: Administrator browser session only.
+      responses:
+        '200': { description: Key names, prefixes, creation, expiration, and status }
+        '403': { description: Administrator required }
+    post:
+      summary: Create an API key and return its secret once
+      description: Administrator browser session only. Keys have operational API access and are stored as SHA-256 hashes.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, expiry]
+              properties:
+                name: { type: string, minLength: 1, maxLength: 80 }
+                expiry: { type: string, enum: [7d, 30d, 90d, 180d, 365d], default: 90d }
+      responses:
+        '201':
+          description: New key and metadata; copy the secret immediately
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [key, api_key]
+                properties:
+                  key: { type: string, writeOnly: true }
+                  api_key: { type: object, properties: { id: { type: string }, name: { type: string }, prefix: { type: string }, created_at: { type: string, format: date-time }, expires_at: { type: string, format: date-time }, status: { type: string } } }
+        '403': { description: Administrator required }
+  /api/admin/api-keys/{id}:
+    delete:
+      summary: Revoke an API key immediately
+      description: Administrator browser session only.
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      responses:
+        '204': { description: Key revoked }
+        '404': { description: Key not found or already revoked }
+  /api/settings:
+    get:
+      summary: Read integration settings with secrets redacted
+      responses:
+        '200': { description: Settings and configured flags }
+    put:
+      summary: Update OpenAI and RustDesk settings; administrator account only
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [model, rustdesk_host, rustdesk_key]
+              properties:
+                model: { type: string }
+                rustdesk_host: { type: string }
+                rustdesk_key: { type: string }
+                openai_key: { type: string, writeOnly: true }
+      responses:
+        '200': { description: Saved settings with secrets redacted }
+  /api/settings/openai/models:
+    get:
+      summary: List models available to the saved OpenAI key
+      responses:
+        '200': { description: Available model identifiers }
+        '409': { description: OpenAI key missing }
+  /api/jobs:
+    get:
+      parameters:
+        - { in: query, name: device_id, schema: { type: string } }
+      summary: List command jobs
+      responses:
+        '200': { description: Jobs }
+  /api/command:
+    post:
+      summary: Queue a remote command on an online device
+      description: High impact. Audit logged. Executes with the endpoint agent's OS permissions.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [device_id, command]
+              properties:
+                device_id: { type: string }
+                command: { type: string, maxLength: 4096 }
+      responses:
+        '200': { description: Queued job }
+        '404': { description: Device is offline }
+  /api/audit:
+    get:
+      summary: List administrative audit events
+      responses:
+        '200': { description: Audit events }
+  /api/alerts:
+    get: { summary: List alert rules, responses: { '200': { description: Alert rules } } }
+    post:
+      summary: Create an alert rule
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [metric, threshold]
+              properties:
+                id: { type: string }
+                metric: { type: string, enum: [cpu, ram, disk] }
+                threshold: { type: number, minimum: 1, maximum: 100 }
+                enabled: { type: boolean }
+      responses:
+        '201': { description: Alert rule }
+  /api/maintenance:
+    get: { summary: List maintenance windows, responses: { '200': { description: Maintenance windows } } }
+    post:
+      summary: Schedule a maintenance window
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [device_id, starts_at, ends_at]
+              properties:
+                device_id: { type: string }
+                starts_at: { type: string, format: date-time }
+                ends_at: { type: string, format: date-time }
+                note: { type: string, maxLength: 160 }
+      responses:
+        '201': { description: Maintenance window }
+  /api/support-session:
+    post:
+      summary: Record a RustDesk support handoff
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [device_id, action]
+              properties:
+                device_id: { type: string }
+                action: { type: string, enum: [open, close] }
+      responses:
+        '200': { description: Audit handoff record }
+  /downloads/get:
+    get:
+      security: []
+      summary: Download a configured agent binary using an issued enrollment token
+      parameters:
+        - { in: query, name: os, required: true, schema: { type: string, enum: [linux, windows, darwin] } }
+        - { in: query, name: arch, schema: { type: string, enum: [amd64, arm64] } }
+        - { in: header, name: X-Enrollment-Token, required: true, schema: { type: string, format: password } }
+      responses:
+        '200': { description: Configured executable }
+        '401': { description: Invalid, expired, or claimed token }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT or HERMES_API_TOKEN

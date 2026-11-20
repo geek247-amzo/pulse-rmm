@@ -1,0 +1,294 @@
+{
+  "go_toolchain": "go1.27.4",
+  "modules": [
+    {
+      "module": "custom-rmm",
+      "version": "",
+      "license_files": []
+    },
+    {
+      "module": "github.com/davecgh/go-spew",
+      "version": "v1.1.1",
+      "license_files": [
+        "THIRD_PARTY_LICENSES/github.com_davecgh_go-spew-LICENSE"
+      ]
+    },
+    {
+      "module": "github.com/dustin/go-humanize",
+      "version": "v1.0.1",
+      "license_files": [
+        "THIRD_PARTY_LICENSES/github.com_dustin_go-humanize-LICENSE"
+      ]
+    },
+    {
+      "module": "github.com/ebitengine/purego",
+      "version": "v0.8.1",
+      "license_files": [
+        "THIRD_PARTY_LICENSES/github.com_ebitengine_purego-LICENSE"
+      ]
+    },
+    {
+      "module": "github.com/go-ole/go-ole",
+      "version": "v1.2.6",
+      "license_files": [
+        "THIRD_PARTY_LICENSES/github.com_go-ole_go-ole-LICENSE"
+      ]
+    },
+    {
+      "module": "github.com/google/go-cmp",
+      "version": "v0.6.0",
+      "license_files": [
+        "THIRD_PARTY_LICENSES/github.com_google_go-cmp-LICENSE"
+      ]
+    },
+    {
+      "module": "github.com/google/pprof",
+      "version": "v0.0.0-20240409012703-83162a5b38cd",
+      "license_files": [
+        "THIRD_PARTY_LICENSES/github.com_google_pprof-LICENSE"
+      ]
+    },
+    {
+      "module": "github.com/google/uuid",
+      "version": "v1.6.0",
+      "license_files": [
+        "THIRD_PARTY_LICENSES/github.com_google_uuid-LICENSE"
+      ]
+    },
+    {
+      "module": "github.com/gorilla/websocket",
+      "version": "v1.5.3",
+      "license_files": [
+        "THIRD_PARTY_LICENSES/github.com_gorilla_websocket-LICENSE"
+      ]
+    },
+    {
+      "module": "github.com/lufia/plan9stats",
+      "version": "v0.0.0-20211012122336-39d0f177ccd0",
+      "license_files": [
+        "THIRD_PARTY_LICENSES/github.com_lufia_plan9stats-LICENSE"
+      ]
+    },
+    {
+      "module": "github.com/mattn/go-isatty",
+      "version": "v0.0.20",
+      "license_files": [
+        "THIRD_PARTY_LICENSES/github.com_mattn_go-isatty-LICENSE"
+      ]
+    },
+    {
+      "module": "github.com/ncruces/go-strftime",
+      "version": "v0.1.9",
+      "license_files": [
+        "THIRD_PARTY_LICENSES/github.com_ncruces_go-strftime-LICENSE"
+      ]
+    },
+    {
+      "module": "github.com/pmezard/go-difflib",
+      "version": "v1.0.0",
+      "license_files": [
+        "THIRD_PARTY_LICENSES/github.com_pmezard_go-difflib-LICENSE"
+      ]
+    },
+    {
+      "module": "github.com/power-devops/perfstat",
+      "version": "v0.0.0-20210106213030-5aafc221ea8c",
+      "license_files": [
+        "THIRD_PARTY_LICENSES/github.com_power-devops_perfstat-LICENSE"
+      ]
+    },
+    {
+      "module": "github.com/remyoudompheng/bigfft",
+      "version": "v0.0.0-20230129092748-24d4a6f8daec",
+      "license_files": [
+        "THIRD_PARTY_LICENSES/github.com_remyoudompheng_bigfft-LICENSE"
+      ]
+    },
+    {
+      "module": "github.com/shirou/gopsutil/v4",
+      "version": "v4.24.10",
+      "license_files": [
+        "THIRD_PARTY_LICENSES/github.com_shirou_gopsutil_v4-LICENSE"
+      ]
+    },
+    {
+      "module": "github.com/stretchr/testify",
+      "version": "v1.9.0",
+      "license_files": [
+        "THIRD_PARTY_LICENSES/github.com_stretchr_testify-LICENSE"
+      ]
+    },
+    {
+      "module": "github.com/tklauser/go-sysconf",
+      "version": "v0.3.12",
+      "license_files": [
+        "THIRD_PARTY_LICENSES/github.com_tklauser_go-sysconf-LICENSE"
+      ]
+    },
+    {
+      "module": "github.com/tklauser/numcpus",
+      "version": "v0.6.1",
+      "license_files": [
+        "THIRD_PARTY_LICENSES/github.com_tklauser_numcpus-LICENSE"
+      ]
+    },
+    {
+      "module": "github.com/yusufpapurcu/wmi",
+      "version": "v1.2.4",
+      "license_files": [
+        "THIRD_PARTY_LICENSES/github.com_yusufpapurcu_wmi-LICENSE"
+      ]
+    },
+    {
+      "module": "golang.org/x/crypto",
+      "version": "v0.28.0",
+      "license_files": [
+        "THIRD_PARTY_LICENSES/golang.org_x_crypto-LICENSE"
+      ]
+    },
+    {
+      "module": "golang.org/x/mod",
+      "version": "v0.16.0",
+      "license_files": [
+        "THIRD_PARTY_LICENSES/golang.org_x_mod-LICENSE"
+      ]
+    },
+    {
+      "module": "golang.org/x/net",
+      "version": "v0.21.0",
+      "license_files": [
+        "THIRD_PARTY_LICENSES/golang.org_x_net-LICENSE"
+      ]
+    },
+    {
+      "module": "golang.org/x/sys",
+      "version": "v0.26.0",
+      "license_files": [
+        "THIRD_PARTY_LICENSES/golang.org_x_sys-LICENSE"
+      ]
+    },
+    {
+      "module": "golang.org/x/term",
+      "version": "v0.25.0",
+      "license_files": [
+        "THIRD_PARTY_LICENSES/golang.org_x_term-LICENSE"
+      ]
+    },
+    {
+      "module": "golang.org/x/text",
+      "version": "v0.19.0",
+      "license_files": [
+        "THIRD_PARTY_LICENSES/golang.org_x_text-LICENSE"
+      ]
+    },
+    {
+      "module": "golang.org/x/tools",
+      "version": "v0.19.0",
+      "license_files": [
+        "THIRD_PARTY_LICENSES/golang.org_x_tools-LICENSE"
+      ]
+    },
+    {
+      "module": "golang.org/x/xerrors",
+      "version": "v0.0.0-20191204190536-9bdfabe68543",
+      "license_files": [
+        "THIRD_PARTY_LICENSES/golang.org_x_xerrors-LICENSE"
+      ]
+    },
+    {
+      "module": "gopkg.in/yaml.v3",
+      "version": "v3.0.1",
+      "license_files": [
+        "THIRD_PARTY_LICENSES/gopkg.in_yaml.v3-LICENSE",
+        "THIRD_PARTY_LICENSES/gopkg.in_yaml.v3-NOTICE"
+      ]
+    },
+    {
+      "module": "modernc.org/cc/v4",
+      "version": "v4.21.4",
+      "license_files": [
+        "THIRD_PARTY_LICENSES/modernc.org_cc_v4-LICENSE"
+      ]
+    },
+    {
+      "module": "modernc.org/ccgo/v4",
+      "version": "v4.19.2",
+      "license_files": [
+        "THIRD_PARTY_LICENSES/modernc.org_ccgo_v4-LICENSE"
+      ]
+    },
+    {
+      "module": "modernc.org/fileutil",
+      "version": "v1.3.0",
+      "license_files": [
+        "THIRD_PARTY_LICENSES/modernc.org_fileutil-LICENSE"
+      ]
+    },
+    {
+      "module": "modernc.org/gc/v2",
+      "version": "v2.4.1",
+      "license_files": [
+        "THIRD_PARTY_LICENSES/modernc.org_gc_v2-LICENSE"
+      ]
+    },
+    {
+      "module": "modernc.org/libc",
+      "version": "v1.55.3",
+      "license_files": [
+        "THIRD_PARTY_LICENSES/modernc.org_libc-LICENSE-GO",
+        "THIRD_PARTY_LICENSES/modernc.org_libc-LICENSE"
+      ]
+    },
+    {
+      "module": "modernc.org/mathutil",
+      "version": "v1.6.0",
+      "license_files": [
+        "THIRD_PARTY_LICENSES/modernc.org_mathutil-LICENSE"
+      ]
+    },
+    {
+      "module": "modernc.org/memory",
+      "version": "v1.8.0",
+      "license_files": [
+        "THIRD_PARTY_LICENSES/modernc.org_memory-LICENSE-MMAP-GO",
+        "THIRD_PARTY_LICENSES/modernc.org_memory-LICENSE-GO",
+        "THIRD_PARTY_LICENSES/modernc.org_memory-LICENSE"
+      ]
+    },
+    {
+      "module": "modernc.org/opt",
+      "version": "v0.1.3",
+      "license_files": [
+        "THIRD_PARTY_LICENSES/modernc.org_opt-LICENSE"
+      ]
+    },
+    {
+      "module": "modernc.org/sortutil",
+      "version": "v1.2.0",
+      "license_files": [
+        "THIRD_PARTY_LICENSES/modernc.org_sortutil-LICENSE"
+      ]
+    },
+    {
+      "module": "modernc.org/sqlite",
+      "version": "v1.34.5",
+      "license_files": [
+        "THIRD_PARTY_LICENSES/modernc.org_sqlite-LICENSE"
+      ]
+    },
+    {
+      "module": "modernc.org/strutil",
+      "version": "v1.2.0",
+      "license_files": [
+        "THIRD_PARTY_LICENSES/modernc.org_strutil-LICENSE"
+      ]
+    },
+    {
+      "module": "modernc.org/token",
+      "version": "v1.1.0",
+      "license_files": [
+        "THIRD_PARTY_LICENSES/modernc.org_token-LICENSE"
+      ]
+    }
+  ]
+}

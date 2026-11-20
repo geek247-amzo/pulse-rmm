@@ -1,0 +1,24 @@
+services:
+  rmm-server:
+    build:
+      context: ./server
+    restart: unless-stopped
+    environment:
+      PORT: "8080"
+      DATA_DIR: /app/data
+      ADMIN_USER: ${ADMIN_USER:?Run scripts/configure.py}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      ADMIN_PASSWORD_HASH: ${ADMIN_PASSWORD_HASH:-}
+      AGENT_SECRET: ${AGENT_SECRET:?Run scripts/configure.py}
+      JWT_SECRET: ${JWT_SECRET:?Run scripts/configure.py}
+      HERMES_API_TOKEN: ${HERMES_API_TOKEN:-}
+      PUBLIC_URL: ${PUBLIC_URL:?Set the public HTTPS origin}
+      COOKIE_SECURE: "true"
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4.1-mini}
+      RUSTDESK_HOST: ${RUSTDESK_HOST:-}
+      RUSTDESK_KEY: ${RUSTDESK_KEY:-}
+    ports:
+      - "${RMM_BIND_ADDRESS:-127.0.0.1}:${RMM_PORT:-8080}:8080"
+    volumes:
+      - ./data:/app/data

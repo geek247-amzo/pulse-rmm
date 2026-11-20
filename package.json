@@ -1,0 +1,11 @@
+{
+  "name": "pulsermm-verification",
+  "private": true,
+  "scripts": {
+    "test:browser": "node tests/browser/workflow.cjs && node tests/browser/security.cjs"
+  },
+  "devDependencies": {
+    "playwright": "1.65.1",
+    "ws": "8.23.0"
+  }
+}
