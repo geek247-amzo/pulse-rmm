@@ -2,7 +2,7 @@
 
 Verified 2026-11-20 with Go 1.27.4.
 
-- 26 server test cases, agent package compilation and go vet passed.
+- 29 server test cases, agent package compilation and go vet passed.
 - Two setup-script tests passed: private unique configuration, no overwrite and insecure-origin rejection.
 - govulncheck found no affected reachable code or imported packages. It reported 23 advisories in required modules outside the used code paths; this is not a claim of advisory-free dependencies.
 - Linux amd64/arm64, Windows amd64 and macOS amd64/arm64 agent binaries cross-compiled. Real Windows/macOS endpoint installation, OS signing and native tray behavior were not verified.

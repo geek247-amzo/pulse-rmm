@@ -391,3 +391,47 @@ func TestPlatformSettingsOptionalRustDesk(t *testing.T) {
 		t.Fatal("optional remote desktop/provider secret handling failed")
 	}
 }
+
+func TestCrossCustomerDeviceAndDirectoryReparentingBlocked(t *testing.T) {
+	p := testPlatform(t)
+	token, _ := testSession(p, "owner", "")
+	p.state.Customers["a"] = &DirectoryRecord{ID: "a", Active: true}
+	p.state.Customers["b"] = &DirectoryRecord{ID: "b", Active: true}
+	p.store.devices["fixture"] = &DeviceMetrics{DeviceID: "fixture"}
+	p.state.Assignments["fixture"] = &Assignment{DeviceID: "fixture", CustomerID: "a"}
+	if doRequest(p, "PUT", "/api/v1/assignments/fixture", token, map[string]any{"customer_id": "b"}).Code != 409 {
+		t.Fatal("historical device data could cross customers")
+	}
+	p.state.Contacts["person"] = &DirectoryRecord{ID: "person", Name: "Person", CustomerID: "a", Active: true}
+	if doRequest(p, "PUT", "/api/v1/contacts/person", token, map[string]any{"name": "Person", "customer_id": "b", "active": true}).Code != 409 {
+		t.Fatal("contact binding silently changed customer")
+	}
+}
+func TestCustomerScopedAuditAndDiagnosticRead(t *testing.T) {
+	p := testPlatform(t)
+	token := "audit-fixture"
+	p.state.Keys["key"] = &ScopedKey{ID: "key", Hash: hashText(token), Scopes: []string{"audit.read", "diagnostics.read"}, Customers: []string{"a"}, Expires: time.Now().Add(time.Hour).Unix()}
+	p.state.Assignments["a-device"] = &Assignment{CustomerID: "a"}
+	p.state.Assignments["b-device"] = &Assignment{CustomerID: "b"}
+	p.store.AddAudit("operator", "a-device", "test", "allowed")
+	p.store.AddAudit("operator", "b-device", "test", "foreign")
+	w := doRequest(p, "GET", "/api/v1/audit", token, nil)
+	if w.Code != 200 || strings.Contains(w.Body.String(), "foreign") || !strings.Contains(w.Body.String(), "allowed") {
+		t.Fatal("audit customer filter failed")
+	}
+	if doRequest(p, "GET", "/api/v1/diagnostics", token, nil).Code != 200 || doRequest(p, "GET", "/api/v1/actions", token, nil).Code != 200 {
+		t.Fatal("diagnostic read scope unusable")
+	}
+}
+func TestScopedCustomerWriteUpdatesOnlyBoundCustomer(t *testing.T) {
+	p := testPlatform(t)
+	token := "customer-writer"
+	p.state.Keys["key"] = &ScopedKey{ID: "key", Hash: hashText(token), Scopes: []string{"customers.write"}, Customers: []string{"a"}, Expires: time.Now().Add(time.Hour).Unix()}
+	p.state.Customers["a"] = &DirectoryRecord{ID: "a", Name: "A", Active: true}
+	if doRequest(p, "PUT", "/api/v1/customers/a", token, map[string]any{"name": "Updated A", "active": true}).Code != 200 {
+		t.Fatal("scoped customer update rejected")
+	}
+	if doRequest(p, "POST", "/api/v1/customers", token, map[string]any{"name": "Unbound", "active": true}).Code != 403 {
+		t.Fatal("restricted key created an unbound customer")
+	}
+}

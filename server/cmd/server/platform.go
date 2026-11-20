@@ -819,7 +819,7 @@ func (p *Platform) handle(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	if id != "" && contains([]string{"status", "jobs", "notifications"}, kind) {
+	if id != "" && contains([]string{"status", "jobs", "notifications", "audit", "diagnostics"}, kind) {
 		problem(w, 404, "Unknown management endpoint")
 		return
 	}
@@ -892,6 +892,44 @@ func (p *Platform) handle(w http.ResponseWriter, r *http.Request) {
 		p.tickets(w, r, a, id, parts)
 	case "actions":
 		p.actions(w, r, a, id, parts)
+	case "audit":
+		if r.Method != "GET" {
+			problem(w, 405, "GET required")
+			return
+		}
+		if !p.require(w, a, "audit.read") {
+			return
+		}
+		p.store.RLock()
+		events := append([]AuditEvent{}, p.store.audit...)
+		p.store.RUnlock()
+		views := []AuditEvent{}
+		limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
+		if limit < 1 || limit > 1000 {
+			limit = 200
+		}
+		for i := len(events) - 1; i >= 0 && len(views) < limit; i-- {
+			event := events[i]
+			visible := !a.Service || len(a.Customers) == 0 || event.Actor == a.Name
+			if !visible && event.DeviceID != "" {
+				if assignment := p.state.Assignments[event.DeviceID]; assignment != nil {
+					visible = visibleCustomer(a, assignment.CustomerID)
+				}
+			}
+			if visible {
+				views = append(views, event)
+			}
+		}
+		jsonResponse(w, 200, views)
+	case "diagnostics":
+		if r.Method != "GET" {
+			problem(w, 405, "GET required")
+			return
+		}
+		if !p.require(w, a, "diagnostics.read") {
+			return
+		}
+		jsonResponse(w, 200, []map[string]any{{"kind": "system-info", "requires_approval": true}, {"kind": "storage-check", "requires_approval": true}, {"kind": "network-check", "requires_approval": true}})
 	case "notifications":
 		if r.Method != "GET" {
 			problem(w, 405, "GET required")
@@ -1154,11 +1192,15 @@ func (p *Platform) directory(w http.ResponseWriter, r *http.Request, a Principal
 			problem(w, 404, "Record not found")
 			return
 		}
+		if kind != "customers" && old.CustomerID != req.CustomerID {
+			problem(w, 409, "Customer binding cannot be changed; create a separate record for the other customer")
+			return
+		}
 	}
 	req.ID = id
 	if kind == "customers" {
 		req.CustomerID = ""
-		if !(a.Role == "owner" || a.Role == "admin" || a.Service && len(a.Customers) == 0) {
+		if !(a.Role == "owner" || a.Role == "admin" || a.Service && (len(a.Customers) == 0 || r.Method == "PUT" && contains(a.Customers, id))) {
 			problem(w, 403, "Global customer management required")
 			return
 		}
@@ -1232,6 +1274,10 @@ func (p *Platform) assign(w http.ResponseWriter, r *http.Request, a Principal, i
 	c := p.state.Customers[req.CustomerID]
 	if c == nil || !c.Active || !visibleCustomer(a, req.CustomerID) {
 		problem(w, 400, "Invalid customer")
+		return
+	}
+	if prior := p.state.Assignments[id]; prior != nil && prior.CustomerID != req.CustomerID {
+		problem(w, 409, "Cross-customer transfer is blocked to protect historical device data; use a reviewed decommission/migration workflow")
 		return
 	}
 	if req.LocationID != "" {
@@ -1575,7 +1621,8 @@ func basicCommand(kind, osName string) (string, bool) {
 }
 func (p *Platform) actions(w http.ResponseWriter, r *http.Request, a Principal, id string, parts []string) {
 	if r.Method == "GET" {
-		if !p.require(w, a, "jobs.read") {
+		if !permitted(a, "jobs.read") && !permitted(a, "diagnostics.read") {
+			problem(w, 403, "Permission denied")
 			return
 		}
 		v := []*SupportAction{}

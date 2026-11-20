@@ -68,7 +68,7 @@ go test ./...
 go vet ./...
 ```
 
-See [architecture](docs/ARCHITECTURE.md), [security](SECURITY.md), [upgrade/rollback](docs/DEPLOYMENT.md), [feature plan](docs/PRODUCT-EXPANSION.md), and [release notes](CHANGELOG.md). The feature plan includes future work and is not a statement that every planned item ships in this version.
+See [architecture](docs/ARCHITECTURE.md), [security](SECURITY.md), [upgrade/rollback](docs/DEPLOYMENT.md), [roadmap](ROADMAP.md), and [release notes](CHANGELOG.md). The feature plan includes future work and is not a statement that every planned item ships in this version.
 
 ## Private source and public releases
 
@@ -92,3 +92,17 @@ sh scripts/browser-fixture.sh
 ```
 
 The fixture tests use synthetic customers, users and one simulated device; they test account/MFA, assignment, support messages/attachments, approvals and scoped-key boundaries. They must never target a production instance.
+
+## Release downloads
+
+GitHub Releases include source archives, a Linux amd64 Docker image archive and base agent binaries for five OS/architecture targets, with SHA-256 checksums. Base agents are not pre-enrolled installers; use your own instance's enrollment flow.
+
+To use the prebuilt Linux amd64 server image, extract the source archive, verify the downloaded assets against `SHA256SUMS`, then run:
+
+```sh
+docker load -i pulse-rmm-0.2.0-linux-amd64-image.tar.gz
+python3 scripts/configure.py --url https://rmm.example.com --admin owner
+docker compose -f docker-compose.yml -f compose.release.yml up -d --no-build
+```
+
+The image contains no runtime credentials or customer data. Other server architectures can build from source. Configure HTTPS and enroll MFA as described above.

@@ -10,6 +10,7 @@ Durable accounts, customer-bound roles, authenticator-app MFA and recovery codes
 - Customer-specific MFA enrollment policy, passkeys, richer account invitation and recovery workflows.
 - External email/SMS/WhatsApp providers with delivery status, verification and consent policies.
 - Pagination, filtered audit API, outbound signed webhooks, stronger attachment scanning and retention controls.
+- Reviewed cross-customer device decommission/transfer with historical-data retention controls.
 - Location/device restrictions for service principals beyond current customer scoping.
 - Optional richer operator-approved repairs while keeping AI outside the authorization boundary.
 - CloudMonkey hosted-instance provisioning, lifecycle/billing integration and instance-level resource isolation.

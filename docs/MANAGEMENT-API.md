@@ -21,6 +21,8 @@ Human sessions use `/api/login` with JSON `username`, `password`, and `otp` when
 | Route | Methods | Purpose |
 |---|---|---|
 | `/status` | GET | Identity, role and configured scope names |
+| `/audit` | GET | Scoped audit history, latest first; optional limit 1–1000 |
+| `/diagnostics` | GET | Available named diagnostics and approval requirement |
 | `/users` | GET, POST | Human administrator account list/create |
 | `/users/{id}` | PUT | Human administrator account edit/disable/password reset; owner protections apply |
 | `/keys` | GET, POST | Human administrator scoped key list/create |
@@ -81,3 +83,7 @@ Codes are time-based six-digit TOTP with 30-second intervals. A successfully use
 A valid key is not owner authority to perform an action. Read current target state and live grants first. GET is read-only; do not blindly retry uncertain mutations, sends or dispatches. Every changed device/request/user is checked against the caller's role and customer/device restrictions. New unknown scopes are rejected. Existing legacy fleet commands remain powerful and are for separately authorized global operators only.
 
 See `/openapi-v1.json` for the machine-readable route contract. OpenAPI specifies the route/method/security surface; the payload fields and rollout limits above remain part of the contract.
+
+Customer ownership is stable in this release: devices, contacts and locations cannot silently move to another customer and carry historical information along. Create a separate directory record for another customer; cross-customer device transfers need a reviewed decommission/migration workflow outside this version. Within-customer location/contact/user reassignment is supported. Restricted customer keys with customers.write may update their bound customer records, but cannot create unrelated customers.
+
+GET /actions accepts jobs.read or diagnostics.read. GET /audit requires audit.read; customer-restricted keys receive their own actor events and device events within their permitted customers. Customer-bound human roles do not receive global audit access.
