@@ -1,19 +1,15 @@
 {
   "id": "/support.html",
-  "name": "Pulse Support",
+  "name": "PulseRMM Support",
   "short_name": "Pulse Support",
   "description": "Request IT support and view your assigned devices.",
   "start_url": "/support.html",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#0b101a",
-  "theme_color": "#0b101a",
+  "background_color": "#080b12",
+  "theme_color": "#090d16",
   "icons": [
-    {
-      "src": "/support-icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any maskable"
-    }
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
   ]
 }
