@@ -31,6 +31,7 @@ import (
 	"github.com/shirou/gopsutil/v4/mem"
 	gnet "github.com/shirou/gopsutil/v4/net"
 	"github.com/shirou/gopsutil/v4/process"
+	"github.com/shirou/gopsutil/v4/sensors"
 )
 
 const MagicTrailer = "__PULSE_RMM_FOOTER__"
@@ -225,32 +226,53 @@ func copyFile(src, dst string) error {
 }
 
 type DeviceMetrics struct {
-	DeviceID      string           `json:"device_id"`
-	Hostname      string           `json:"hostname"`
-	OS            string           `json:"os"`
-	Platform      string           `json:"platform"`
-	Arch          string           `json:"arch"`
-	Uptime        uint64           `json:"uptime"`
-	CPUPercent    float64          `json:"cpu_percent"`
-	CPUCount      int              `json:"cpu_count"`
-	CPUModel      string           `json:"cpu_model"`
-	TotalRAM      uint64           `json:"total_ram"`
-	UsedRAM       uint64           `json:"used_ram"`
-	RAMPercent    float64          `json:"ram_percent"`
-	TotalDisk     uint64           `json:"total_disk"`
-	UsedDisk      uint64           `json:"used_disk"`
-	DiskPercent   float64          `json:"disk_percent"`
-	IPAddresses   []string         `json:"ip_addresses"`
-	RustDeskSetup string           `json:"rustdesk_setup,omitempty"`
-	SSHReady      *bool            `json:"ssh_ready,omitempty"`
-	RustDeskID    string           `json:"rustdesk_id,omitempty"`
-	Network       []NetworkMetric  `json:"network"`
-	Processes     []ProcessMetric  `json:"processes"`
-	Services      []ServiceMetric  `json:"services"`
-	Security      []SecurityCheck  `json:"security_checks,omitempty"`
-	Logs          []DeviceLogEntry `json:"logs,omitempty"`
-	LogStatus     string           `json:"log_collection_status,omitempty"`
+	DeviceID      string              `json:"device_id"`
+	Hostname      string              `json:"hostname"`
+	OS            string              `json:"os"`
+	Platform      string              `json:"platform"`
+	Arch          string              `json:"arch"`
+	Uptime        uint64              `json:"uptime"`
+	CPUPercent    float64             `json:"cpu_percent"`
+	CPUCount      int                 `json:"cpu_count"`
+	CPUModel      string              `json:"cpu_model"`
+	CPUCoreSpeeds []CPUCoreSpeed      `json:"cpu_core_speeds,omitempty"`
+	Temperatures  []TemperatureMetric `json:"temperatures,omitempty"`
+	CPUBoostState string              `json:"cpu_boost_state"`
+	ThrottleState string              `json:"thermal_throttle_state"`
+	TotalRAM      uint64              `json:"total_ram"`
+	UsedRAM       uint64              `json:"used_ram"`
+	RAMPercent    float64             `json:"ram_percent"`
+	TotalDisk     uint64              `json:"total_disk"`
+	UsedDisk      uint64              `json:"used_disk"`
+	DiskPercent   float64             `json:"disk_percent"`
+	IPAddresses   []string            `json:"ip_addresses"`
+	RustDeskSetup string              `json:"rustdesk_setup,omitempty"`
+	SSHReady      *bool               `json:"ssh_ready,omitempty"`
+	RustDeskID    string              `json:"rustdesk_id,omitempty"`
+	Network       []NetworkMetric     `json:"network"`
+	Processes     []ProcessMetric     `json:"processes"`
+	Services      []ServiceMetric     `json:"services"`
+	Security      []SecurityCheck     `json:"security_checks,omitempty"`
+	Logs          []DeviceLogEntry    `json:"logs,omitempty"`
+	LogStatus     string              `json:"log_collection_status,omitempty"`
 }
+
+type CPUCoreSpeed struct {
+	Core int     `json:"core"`
+	MHz  float64 `json:"mhz"`
+}
+
+type TemperatureMetric struct {
+	SensorKey       string  `json:"sensor_key"`
+	Kind            string  `json:"kind"`
+	Celsius         float64 `json:"celsius"`
+	HighCelsius     float64 `json:"high_celsius,omitempty"`
+	CriticalCelsius float64 `json:"critical_celsius,omitempty"`
+}
+
+var throttleCountersMu sync.Mutex
+var previousThrottleCounters = map[string]uint64{}
+var throttleCountersInitialized bool
 
 type DeviceLogEntry struct {
 	ID         string    `json:"id"`
@@ -687,11 +709,128 @@ func detectRustDeskID() string {
 	return ""
 }
 
+func collectHardwareTelemetry(cpuInfo []cpu.InfoStat) ([]CPUCoreSpeed, []TemperatureMetric, string, string) {
+	coreSpeeds := make([]CPUCoreSpeed, 0, len(cpuInfo))
+	baseMHz := 0.0
+	boostState := "unavailable"
+	if runtime.GOOS == "linux" {
+		basePaths, _ := filepath.Glob("/sys/devices/system/cpu/cpufreq/policy*/base_frequency")
+		if len(basePaths) == 0 {
+			basePaths, _ = filepath.Glob("/sys/devices/system/cpu/cpu0/cpufreq/base_frequency")
+		}
+		for _, path := range basePaths {
+			data, err := os.ReadFile(path)
+			if err != nil {
+				continue
+			}
+			khz, err := strconv.ParseFloat(strings.TrimSpace(string(data)), 64)
+			if err == nil && khz > 0 {
+				baseMHz = khz / 1000
+				break
+			}
+		}
+		paths, _ := filepath.Glob("/sys/devices/system/cpu/cpu[0-9]*/cpufreq/scaling_cur_freq")
+		for _, path := range paths {
+			data, err := os.ReadFile(path)
+			if err != nil {
+				continue
+			}
+			khz, err := strconv.ParseFloat(strings.TrimSpace(string(data)), 64)
+			if err != nil || khz <= 0 {
+				continue
+			}
+			base := filepath.Base(filepath.Dir(filepath.Dir(path)))
+			coreText := strings.TrimPrefix(base, "cpu")
+			core, err := strconv.Atoi(coreText)
+			if err != nil {
+				continue
+			}
+			coreSpeeds = append(coreSpeeds, CPUCoreSpeed{Core: core, MHz: khz / 1000})
+		}
+	}
+	if len(coreSpeeds) > 0 && baseMHz > 0 {
+		boostState = "not_boosting"
+		for _, core := range coreSpeeds {
+			if core.MHz > baseMHz*1.03 {
+				boostState = "boosting"
+				break
+			}
+		}
+	}
+	if runtime.GOOS == "linux" {
+		if data, err := os.ReadFile("/sys/devices/system/cpu/cpufreq/boost"); err == nil && strings.TrimSpace(string(data)) == "0" {
+			boostState = "disabled"
+		}
+		if data, err := os.ReadFile("/sys/devices/system/cpu/intel_pstate/no_turbo"); err == nil && strings.TrimSpace(string(data)) == "1" {
+			boostState = "disabled"
+		}
+	}
+	temps := []TemperatureMetric{}
+	if values, err := sensors.SensorsTemperatures(); err == nil {
+		for _, value := range values {
+			if value.SensorKey == "" || value.Temperature < -100 || value.Temperature > 250 {
+				continue
+			}
+			key := strings.ToLower(value.SensorKey)
+			kind := "system"
+			if strings.Contains(key, "cpu") || strings.Contains(key, "core") || strings.Contains(key, "package") || strings.Contains(key, "k10temp") || strings.Contains(key, "tctl") {
+				kind = "cpu"
+			}
+			if strings.Contains(key, "nvme") || strings.Contains(key, "hdd") || strings.Contains(key, "disk") || strings.Contains(key, "drive") || strings.Contains(key, "drivetemp") {
+				kind = "storage"
+			}
+			temps = append(temps, TemperatureMetric{SensorKey: value.SensorKey, Kind: kind, Celsius: value.Temperature, HighCelsius: value.High, CriticalCelsius: value.Critical})
+		}
+	}
+	return coreSpeeds, temps, boostState, thermalThrottleState()
+}
+
+func thermalThrottleState() string {
+	if runtime.GOOS != "linux" {
+		return "unavailable"
+	}
+	paths, _ := filepath.Glob("/sys/devices/system/cpu/cpu[0-9]*/thermal_throttle/*_throttle_count")
+	if len(paths) == 0 {
+		return "unavailable"
+	}
+	current := make(map[string]uint64, len(paths))
+	for _, path := range paths {
+		data, err := os.ReadFile(path)
+		if err != nil {
+			continue
+		}
+		count, err := strconv.ParseUint(strings.TrimSpace(string(data)), 10, 64)
+		if err == nil {
+			current[path] = count
+		}
+	}
+	if len(current) == 0 {
+		return "unavailable"
+	}
+	throttleCountersMu.Lock()
+	defer throttleCountersMu.Unlock()
+	state := "not_detected"
+	if !throttleCountersInitialized {
+		state = "not_yet_observed"
+	} else {
+		for path, count := range current {
+			if count > previousThrottleCounters[path] {
+				state = "detected"
+				break
+			}
+		}
+	}
+	previousThrottleCounters = current
+	throttleCountersInitialized = true
+	return state
+}
+
 func collectMetrics() (*DeviceMetrics, error) {
 	hInfo, _ := host.Info()
 	vMem, _ := mem.VirtualMemory()
 	cpuPercents, _ := cpu.Percent(time.Second, false)
 	cpuInfo, _ := cpu.Info()
+	coreSpeeds, temperatures, boostState, throttleState := collectHardwareTelemetry(cpuInfo)
 
 	var cpuPct float64
 	if len(cpuPercents) > 0 {
@@ -731,6 +870,10 @@ func collectMetrics() (*DeviceMetrics, error) {
 		CPUPercent:    cpuPct,
 		CPUCount:      runtime.NumCPU(),
 		CPUModel:      cpuModel,
+		CPUCoreSpeeds: coreSpeeds,
+		Temperatures:  temperatures,
+		CPUBoostState: boostState,
+		ThrottleState: throttleState,
 		TotalRAM:      vMem.Total,
 		UsedRAM:       vMem.Used,
 		RAMPercent:    vMem.UsedPercent,
@@ -835,7 +978,7 @@ func main() {
 
 	serverURL := flag.String("server", defaultServer, "Server WS endpoint")
 	secret := flag.String("secret", defaultSecret, "Agent token")
-	interval := flag.Int("interval", 5, "Polling interval in seconds")
+	interval := flag.Int("interval", 60, "Metrics reporting interval in seconds")
 	// Unix self-install relaunches with this marker so the child can be
 	// distinguished in process listings. Accept it even though installation
 	// location checks already prevent another copy from being spawned.
@@ -911,6 +1054,18 @@ func main() {
 			}
 		}(conn)
 
+		// Send a first snapshot as soon as the authenticated WebSocket connects.
+		if stats, err := collectMetrics(); err == nil {
+			writeMu.Lock()
+			writeErr := conn.WriteJSON(map[string]interface{}{"type": "metrics", "data": stats})
+			writeMu.Unlock()
+			if writeErr != nil {
+				log.Printf("Initial metrics write failed: %v", writeErr)
+				conn.Close()
+				time.Sleep(3 * time.Second)
+				continue
+			}
+		}
 		// Heartbeat and metrics sender loop
 		ticker := time.NewTicker(time.Duration(*interval) * time.Second)
 		connected := true

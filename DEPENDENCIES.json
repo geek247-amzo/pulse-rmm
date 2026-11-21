@@ -112,6 +112,13 @@
       ]
     },
     {
+      "module": "github.com/skip2/go-qrcode",
+      "version": "v0.0.0-20200617195104-da1b6568686e",
+      "license_files": [
+        "THIRD_PARTY_LICENSES/github.com_skip2_go-qrcode-LICENSE"
+      ]
+    },
+    {
       "module": "github.com/stretchr/testify",
       "version": "v1.9.0",
       "license_files": [

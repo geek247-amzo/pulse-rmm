@@ -1,5 +1,11 @@
 # Release notes
 
+## Unreleased
+
+- Add QR-scannable authenticator enrollment under the fleet console Settings page. The QR code is generated locally by PulseRMM and is never sent to a third-party service.
+- New agents send a snapshot on connection and report every 60 seconds by default. Add best-effort core frequency, temperature-sensor, boost and thermal-throttle telemetry, and allow a 150-second online grace period.
+
+
 ## 0.2.0 — accounts and support workspace
 
 - Durable account management with global operator and customer-bound roles.

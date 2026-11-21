@@ -4,7 +4,7 @@ Self-hosted remote monitoring and IT support by HumbleMind AI Labs. Apache-2.0 l
 
 ## Capabilities
 
-- Windows, Linux and macOS monitoring agents; CPU, memory, disk, networking, processes, services and bounded warning/error history.
+- Windows, Linux and macOS monitoring agents; CPU, memory, disk, networking, processes, services and bounded warning/error history. Agents report an initial snapshot on connection and then every 60 seconds by default. CPU core frequencies, exposed temperature sensors, boost state and OS thermal-throttle counters are best-effort and report as unavailable when the platform or hardware does not expose them.
 - Operator console, remote command jobs, RustDesk handoffs, alert rules, maintenance records and audit history.
 - Durable user accounts: owner, administrator, technician, customer administrator, viewer and end user. Customer-scoped accounts cannot enter unrestricted legacy fleet routes.
 - Authenticator-app two-factor authentication, encrypted factor seeds, one-use recovery codes, password changes and revocable, idle-expiring sessions.
@@ -34,7 +34,7 @@ rmm.example.com {
 }
 ```
 
-Open your HTTPS domain and sign in. Use **Accounts & customers → My security** to enroll an authenticator and save recovery codes. Keep a protected backup of the data directory, including `account-encryption.key`; losing that key prevents factor decryption. MFA becomes required for each account once its enrollment is confirmed; deployment does not silently enable it before the owner enrolls.
+Open your HTTPS domain and sign in. Use **Settings → Two-factor authentication** to scan the authenticator QR code and save recovery codes; the account portal also retains a manual setup-key fallback. Keep a protected backup of the data directory, including `account-encryption.key`; losing that key prevents factor decryption. MFA becomes required for each account once its enrollment is confirmed; deployment does not silently enable it before the owner enrolls.
 
 The default Compose file only publishes loopback HTTP. A proxy on another machine needs an explicitly chosen private bind address and firewall rule. That private hop is HTTP: use native TLS or another encrypted transport if the private network is not trusted.
 
@@ -54,7 +54,7 @@ Use one scoped API key for each approved Hermes profile or other integration. Ne
 
 Use the fleet console to create a short-lived, single-use enrollment download for an OS/architecture. New binary downloads use the configured HTTPS origin and encrypted WebSocket endpoint. A Windows desktop link, Linux application-menu link or macOS browser link opens the support portal; users still authenticate individually. The portal can also be installed through a supported browser's Install app action. Native tray support and OS-specific device-app validation remain separate rollout work.
 
-Existing devices continue using their enrolled identities. They do not automatically receive a new binary: deploy updated agents deliberately and test on representative machines. No unattended command is sent merely by updating the server. Remote diagnostics run with the agent process's OS permissions; end users and AI do not receive an arbitrary shell.
+Existing devices continue using their enrolled identities. They do not automatically receive a new binary: redeploy updated agents deliberately and test on representative machines. New agent downloads use the configured `PUBLIC_URL` HTTPS origin and connect to its `/ws/agent` endpoint over WSS. No unattended command is sent merely by updating the server. Remote diagnostics run with the agent process's OS permissions; end users and AI do not receive an arbitrary shell.
 
 RustDesk is optional and separately licensed. Configure its private server address and public key in Settings if wanted. Upstream installers are downloaded from checksum-pinned official releases; no RustDesk binary or private server key is distributed in this release. Read [third-party notices](THIRD_PARTY_NOTICES.md).
 

@@ -51,33 +51,49 @@ type TokenRecord struct {
 }
 
 type DeviceMetrics struct {
-	DeviceID      string           `json:"device_id"`
-	Hostname      string           `json:"hostname"`
-	OS            string           `json:"os"`
-	Platform      string           `json:"platform"`
-	Arch          string           `json:"arch"`
-	Uptime        uint64           `json:"uptime"`
-	CPUPercent    float64          `json:"cpu_percent"`
-	CPUCount      int              `json:"cpu_count"`
-	CPUModel      string           `json:"cpu_model"`
-	TotalRAM      uint64           `json:"total_ram"`
-	UsedRAM       uint64           `json:"used_ram"`
-	RAMPercent    float64          `json:"ram_percent"`
-	TotalDisk     uint64           `json:"total_disk"`
-	UsedDisk      uint64           `json:"used_disk"`
-	DiskPercent   float64          `json:"disk_percent"`
-	IPAddresses   []string         `json:"ip_addresses"`
-	RustDeskSetup string           `json:"rustdesk_setup,omitempty"`
-	SSHReady      *bool            `json:"ssh_ready,omitempty"`
-	RustDeskID    string           `json:"rustdesk_id,omitempty"`
-	LastSeen      time.Time        `json:"last_seen"`
-	Status        string           `json:"status"` // "online", "offline"
-	Network       []NetworkMetric  `json:"network"`
-	Processes     []ProcessMetric  `json:"processes"`
-	Services      []ServiceMetric  `json:"services"`
-	Security      []SecurityCheck  `json:"security_checks,omitempty"`
-	Logs          []DeviceLogEntry `json:"logs,omitempty"`
-	LogStatus     string           `json:"log_collection_status,omitempty"`
+	DeviceID      string              `json:"device_id"`
+	Hostname      string              `json:"hostname"`
+	OS            string              `json:"os"`
+	Platform      string              `json:"platform"`
+	Arch          string              `json:"arch"`
+	Uptime        uint64              `json:"uptime"`
+	CPUPercent    float64             `json:"cpu_percent"`
+	CPUCount      int                 `json:"cpu_count"`
+	CPUModel      string              `json:"cpu_model"`
+	CPUCoreSpeeds []CPUCoreSpeed      `json:"cpu_core_speeds,omitempty"`
+	Temperatures  []TemperatureMetric `json:"temperatures,omitempty"`
+	CPUBoostState string              `json:"cpu_boost_state"`
+	ThrottleState string              `json:"thermal_throttle_state"`
+	TotalRAM      uint64              `json:"total_ram"`
+	UsedRAM       uint64              `json:"used_ram"`
+	RAMPercent    float64             `json:"ram_percent"`
+	TotalDisk     uint64              `json:"total_disk"`
+	UsedDisk      uint64              `json:"used_disk"`
+	DiskPercent   float64             `json:"disk_percent"`
+	IPAddresses   []string            `json:"ip_addresses"`
+	RustDeskSetup string              `json:"rustdesk_setup,omitempty"`
+	SSHReady      *bool               `json:"ssh_ready,omitempty"`
+	RustDeskID    string              `json:"rustdesk_id,omitempty"`
+	LastSeen      time.Time           `json:"last_seen"`
+	Status        string              `json:"status"` // "online", "offline"
+	Network       []NetworkMetric     `json:"network"`
+	Processes     []ProcessMetric     `json:"processes"`
+	Services      []ServiceMetric     `json:"services"`
+	Security      []SecurityCheck     `json:"security_checks,omitempty"`
+	Logs          []DeviceLogEntry    `json:"logs,omitempty"`
+	LogStatus     string              `json:"log_collection_status,omitempty"`
+}
+
+type CPUCoreSpeed struct {
+	Core int     `json:"core"`
+	MHz  float64 `json:"mhz"`
+}
+type TemperatureMetric struct {
+	SensorKey       string  `json:"sensor_key"`
+	Kind            string  `json:"kind"`
+	Celsius         float64 `json:"celsius"`
+	HighCelsius     float64 `json:"high_celsius,omitempty"`
+	CriticalCelsius float64 `json:"critical_celsius,omitempty"`
 }
 
 type DeviceLogEntry struct {
@@ -188,7 +204,7 @@ type AuditEvent struct {
 	Details  string    `json:"details,omitempty"`
 }
 
-const maxHistoryPerDevice = 2016 // one sample per 5 seconds for up to 2h 48m
+const maxHistoryPerDevice = 2016 // one sample per minute for about 33.6 hours
 
 type MetricSnapshot struct {
 	RecordedAt   time.Time         `json:"recorded_at"`
@@ -734,7 +750,7 @@ func (s *DeviceStore) GetDetail(deviceID string) (*DeviceMetrics, []MetricSnapsh
 		return nil, nil, false
 	}
 	copy := *d
-	if copy.LastSeen.Before(time.Now().Add(-45 * time.Second)) {
+	if copy.LastSeen.Before(time.Now().Add(-150 * time.Second)) {
 		copy.Status = "offline"
 	}
 	history := append([]MetricSnapshot(nil), s.history[deviceID]...)
@@ -755,7 +771,7 @@ func (s *DeviceStore) GetAll() []*DeviceMetrics {
 	s.RLock()
 	defer s.RUnlock()
 	list := make([]*DeviceMetrics, 0, len(s.devices))
-	cutoff := time.Now().Add(-45 * time.Second)
+	cutoff := time.Now().Add(-150 * time.Second)
 	for _, d := range s.devices {
 		copy := *d
 		if copy.LastSeen.Before(cutoff) {
@@ -1061,7 +1077,7 @@ func main() {
 		for {
 			time.Sleep(30 * time.Second)
 			store.Lock()
-			cutoff := time.Now().Add(-45 * time.Second)
+			cutoff := time.Now().Add(-150 * time.Second)
 			for _, d := range store.devices {
 				if d.LastSeen.Before(cutoff) {
 					d.Status = "offline"

@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/skip2/go-qrcode"
 	"golang.org/x/crypto/bcrypt"
 	"io"
 	"mime"
@@ -703,7 +704,12 @@ func (p *Platform) account(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		uri := "otpauth://totp/" + url.PathEscape("PulseRMM:"+u.Username) + "?secret=" + seed + "&issuer=PulseRMM&algorithm=SHA1&digits=6&period=30"
-		jsonResponse(w, 200, map[string]string{"secret": seed, "otpauth_uri": uri})
+		qr, err := qrcode.Encode(uri, qrcode.Medium, 256)
+		if err != nil {
+			problem(w, 500, "Authenticator QR generation failed")
+			return
+		}
+		jsonResponse(w, 200, map[string]string{"secret": seed, "otpauth_uri": uri, "qr_png_base64": base64.StdEncoding.EncodeToString(qr)})
 		return
 	}
 	if path == "mfa/confirm" {
